@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <!-- <script src="home.js"></script> -->
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>OH Queue</title>
+    </head>
+    <body class="bg-gray-100">
+        <div class="container mx-auto p-10">
+            <div class="justify-center mx-auto flex mb-4 justify-between max-w-sm">
+                <p class="font-semibold text-2xl">OS Office Hours</p>
+                <p id="status" class="inline-block border border-blue-500 rounded py-1 px-3 bg-blue-500 text-white" href="#"></p>
+            </div>
+            <div id="joiner" class="justify-center max-w-sm mx-auto rounded
+                     overflow-hidden shadow-lg p-6 bg-white">
+                <div valign="top" width="50%">
+                    <p class="pb-6 text-center">Enter your name below to join the queue!</p>
+                    <!-- <form> -->
+                    <!-- <input id="input" type="text" placeholder="Luke Skywalker"> -->
+                    <!-- <button id="send" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Join</button> -->
+                    <!-- </form> -->
+                    <form class="w-full max-w-sm">
+                        <div class="md:flex md:items-center mb-6">
+                            <div class="md:w-1/4">
+                                <label class="block text-black-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="inline-full-name">
+                                    Name
+                                </label>
+                            </div>
+                            <div class="md:w-2/3">
+                                <input class="bg-gray-200 appearance-none border-2
+                                              border-gray-200 rounded w-full py-2
+                                              px-4 text-gray-700 leading-tight
+                                              focus:outline-none focus:bg-white
+                                              focus:border-purple-500"
+                                       id="input" type="text" placeholder="Luke Skywalker">
+                            </div>
+                        </div>
+                        <!--
+                        <div class="md:flex md:items-center mb-6">
+                            <div class="md:w-1/4">
+                                <label class="block text-black-500 font-bold md:text-right mb-1 md:mb-0 pr-4" for="inline-username">
+                                    Notes
+                                </label>
+                            </div>
+                            <div class="md:w-2/3">
+                                <input class="bg-gray-200 appearance-none border-2
+                                              border-gray-200 rounded w-full py-2
+                                              px-4 text-gray-700 leading-tight
+                                              focus:outline-none focus:bg-white
+                                              focus:border-purple-500"
+                                       id="comment" type="text"
+                                       placeholder="I've lost my lightsaber..">
+                            </div>
+                        </div>
+                        -->
+                        <div class="justify-center mx-auto md:flex md:items-center">
+                                <button id="join" class="shadow bg-purple-500
+                                            hover:bg-purple-400
+                                            focus:shadow-outline
+                                            focus:outline-none text-white
+                                            font-bold py-2 px-4 rounded"
+                                        type="button">
+                                    Join Queue
+                                </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="leaver" class="justify-center max-w-sm mx-auto rounded
+                overflow-hidden shadow-lg p-6 bg-white">
+                <p id="greet" class="text-center pb-6 text-lg"></p>
+                <form>
+                    <!-- <button id="leave">Leave</button> -->
+                    <div class="justify-center mx-auto md:flex md:items-center">
+                            <button id="leave" class="shadow bg-red-500
+                                        hover:bg-red-400
+                                        focus:shadow-outline
+                                        focus:outline-none text-white
+                                        font-bold py-2 px-4 rounded"
+                                    type="button">
+                                Leave Queue
+                            </button>
+                    </div>
+                </form>
+            </div>
+            <div class="justify-center max-w-sm mx-auto rounded
+                        overflow-hidden shadow-lg p-6 bg-white mt-6">
+                <p class="text-center text-2xl pb-3">Live Waitqueue</p>
+                <div id="line"></div>
+            </div>
+            <script src="bundle.js"></script>
+        </div>
+    </body>
+</html>

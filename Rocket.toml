@@ -1,0 +1,13 @@
+[development]
+address = "localhost"
+port = 8080
+workers = 10
+log = "normal"
+limits = { forms = 32768 }
+
+[production]
+address = "0.0.0.0"
+port = 80
+workers = 100
+log = "critical"
+limits = { forms = 32768 }
