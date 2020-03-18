@@ -1,6 +1,7 @@
 import "./styles.css"
 
-var httpURL = "http://localhost:8080/";
+var host = "oh.zvs.io";
+var httpURL = "https://"+host+"/";
 
 window.addEventListener("load", function(evt) {
     var input = document.getElementById("input");
@@ -10,7 +11,7 @@ window.addEventListener("load", function(evt) {
     var leaver = document.getElementById("leaver");
     var greet = document.getElementById("greet");
 
-    const evtSource = new EventSource("//localhost:8080/sse");
+    const evtSource = new EventSource("//" + host + "/sse");
     var last = evtSource.readyState;
 
     if (localStorage.getItem('name') != null) {
