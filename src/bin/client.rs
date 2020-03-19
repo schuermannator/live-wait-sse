@@ -1,10 +1,8 @@
 use sse_client::EventSource;
 use std::io::Read;
-use std::{error::Error, io};
 use std::sync::{Arc, Mutex};
-use termion::{
-    async_stdin, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen,
-};
+use std::{error::Error, io, thread, time};
+use termion::{async_stdin, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Direction, Layout},
@@ -23,7 +21,7 @@ struct App {
 }
 
 //impl<'a> App<'a> {
-    //fn new() -> App<'a> {
+//fn new() -> App<'a> {
 impl App {
     fn new() -> App {
         App {
@@ -38,28 +36,14 @@ impl App {
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn draw(app: Arc<Mutex<App>>) -> Result<(), Box<dyn Error>> {
     // Terminal initialization
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let mut stdin = async_stdin().bytes();
     terminal.hide_cursor()?;
-
-    // App
-    let app = Arc::new(Mutex::new(App::new()));
-
-    let evt_src = EventSource::new("https://oh.zvs.io/sse").unwrap();
-
-    let clone = Arc::clone(&app);
-    evt_src.on_message(move |msg| {
-        //let clone = Arc::clone(&app);
-        //println!("new message {}", msg.data);
-        let json: Vec<String> = serde_json::from_str(&msg.data).unwrap();
-        clone.lock().unwrap().items = json;
-    });
 
     loop {
         terminal.draw(|mut f| {
@@ -80,12 +64,37 @@ fn main() -> Result<(), Box<dyn Error>> {
             f.render(&mut items, chunks[1]);
 
             let text = [Text::raw("idk this is where info will be")];
-            let mut info = Paragraph::new(text.iter())
-                .block(Block::default().borders(Borders::ALL).title("Info"));
-                //.start_corner(Corner::BottomLeft);
+            let mut info =
+                Paragraph::new(text.iter()).block(Block::default().borders(Borders::ALL).title("Info"));
+            //.start_corner(Corner::BottomLeft);
             f.render(&mut info, chunks[0]);
         })?;
+    }
+    Ok(())
+}
 
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut stdin = async_stdin().bytes();
+    
+    // App
+    let app = Arc::new(Mutex::new(App::new()));
+
+    let evt_src = EventSource::new("https://oh.zvs.io/sse").unwrap();
+
+    let clone = Arc::clone(&app);
+    evt_src.on_message(move |msg| {
+        //let clone = Arc::clone(&app);
+        //println!("new message {}", msg.data);
+        let json: Vec<String> = serde_json::from_str(&msg.data).unwrap();
+        clone.lock().unwrap().items = json;
+    });
+
+    let app2 = Arc::clone(&app);
+    thread::spawn(|| {
+        draw(app2);
+    });
+
+    loop {
         match stdin.next() {
             Some(Ok(b'q')) => {
                 break;
