@@ -1,5 +1,5 @@
 use sse_client::EventSource;
-use std::io::{Read, stdin};
+use std::io::stdin;
 use std::sync::{Arc, Mutex, mpsc};
 use std::sync::mpsc::{Sender, Receiver};
 use std::{error::Error, io, thread};
