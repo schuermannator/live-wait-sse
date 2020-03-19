@@ -1,8 +1,9 @@
 use sse_client::EventSource;
-use std::io::Read;
-use std::sync::{Arc, Mutex};
-use std::{error::Error, io, thread, time};
-use termion::{async_stdin, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
+use std::io::{Read, stdin};
+use std::sync::{Arc, Mutex, mpsc};
+use std::sync::mpsc::{Sender, Receiver};
+use std::{error::Error, io, thread};
+use termion::{event::Key, input::TermRead, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Direction, Layout},
@@ -25,18 +26,13 @@ struct App {
 impl App {
     fn new() -> App {
         App {
-            items: vec![
-                String::from("hi"),
-                String::from("hir1"),
-                String::from("hi3"),
-                String::from("hi5"),
-            ],
+            items: vec![],
             selected: 0,
         }
     }
 }
 
-fn draw(app: Arc<Mutex<App>>) -> Result<(), Box<dyn Error>> {
+fn draw(app: Arc<Mutex<App>>, chan: Receiver<bool>) -> Result<(), Box<dyn Error>> {
     // Terminal initialization
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
@@ -46,6 +42,7 @@ fn draw(app: Arc<Mutex<App>>) -> Result<(), Box<dyn Error>> {
     terminal.hide_cursor()?;
 
     loop {
+        chan.recv().unwrap();
         terminal.draw(|mut f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -70,49 +67,53 @@ fn draw(app: Arc<Mutex<App>>) -> Result<(), Box<dyn Error>> {
             f.render(&mut info, chunks[0]);
         })?;
     }
-    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut stdin = async_stdin().bytes();
-    
-    // App
+    //let mut stdin = async_stdin().bytes();
     let app = Arc::new(Mutex::new(App::new()));
-
     let evt_src = EventSource::new("https://oh.zvs.io/sse").unwrap();
+    let stdin = stdin();
 
+    let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
+
+    let thread_tx = tx.clone();
     let clone = Arc::clone(&app);
     evt_src.on_message(move |msg| {
         //let clone = Arc::clone(&app);
-        //println!("new message {}", msg.data);
+        println!("new message {}", msg.data);
         let json: Vec<String> = serde_json::from_str(&msg.data).unwrap();
         clone.lock().unwrap().items = json;
+        thread_tx.send(true).unwrap();
     });
 
     let app2 = Arc::clone(&app);
     thread::spawn(|| {
-        draw(app2);
+        draw(app2, rx).unwrap();
     });
 
-    loop {
-        match stdin.next() {
-            Some(Ok(b'q')) => {
+    for c in stdin.keys() {
+        match c.unwrap() {
+            Key::Char('q') => {
                 break;
             }
-            Some(Ok(b'j')) => {
+            Key::Char('j') => {
                 let mut locked_app = app.lock().unwrap();
                 if locked_app.selected < locked_app.items.len() - 1 {
                     locked_app.selected += 1;
                 }
+                tx.send(true).unwrap();
             }
-            Some(Ok(b'k')) => {
+            Key::Char('k') => {
                 let mut locked_app = app.lock().unwrap();
                 if locked_app.selected > 0 {
                     locked_app.selected -= 1;
                 }
+                tx.send(true).unwrap();
             }
-            Some(Ok(b'r')) => {
+            Key::Char('r') => {
                 println!("refresh");
+                tx.send(true).unwrap();
             }
             _ => {}
         }
