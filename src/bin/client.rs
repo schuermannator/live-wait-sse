@@ -1,9 +1,11 @@
 use sse_client::EventSource;
 use std::io::stdin;
-use std::sync::{Arc, Mutex, mpsc};
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{mpsc, Arc, Mutex};
 use std::{error::Error, io, thread};
-use termion::{event::Key, input::TermRead, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
+use termion::{
+    event::Key, input::MouseTerminal, input::TermRead, raw::IntoRawMode, screen::AlternateScreen,
+};
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Direction, Layout},
@@ -12,17 +14,11 @@ use tui::{
     Terminal,
 };
 
-//use std::collections::HashMap;
-
-//struct App<'a> {
 struct App {
-    //items: Vec<&'a str>,
     items: Vec<String>,
     selected: usize,
 }
 
-//impl<'a> App<'a> {
-//fn new() -> App<'a> {
 impl App {
     fn new() -> App {
         App {
@@ -42,12 +38,19 @@ fn draw(app: Arc<Mutex<App>>, chan: Receiver<bool>) -> Result<(), Box<dyn Error>
     terminal.hide_cursor()?;
 
     loop {
-        chan.recv().unwrap();
+        if !chan.recv().unwrap() {
+            return Ok(());
+        }
         terminal.draw(|mut f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
                 .split(f.size());
+
+            let text = [Text::raw("idk this is where info will be")];
+            let mut info = Paragraph::new(text.iter())
+                .block(Block::default().borders(Borders::ALL).title("Info"));
+            f.render(&mut info, chunks[0]);
 
             let style = Style::default();
             let locked_app = app.lock().unwrap();
@@ -59,18 +62,12 @@ fn draw(app: Arc<Mutex<App>>, chan: Receiver<bool>) -> Result<(), Box<dyn Error>
                 .highlight_style(style.fg(Color::LightGreen).modifier(Modifier::BOLD))
                 .highlight_symbol(">");
             f.render(&mut items, chunks[1]);
-
-            let text = [Text::raw("idk this is where info will be")];
-            let mut info =
-                Paragraph::new(text.iter()).block(Block::default().borders(Borders::ALL).title("Info"));
-            //.start_corner(Corner::BottomLeft);
-            f.render(&mut info, chunks[0]);
         })?;
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    //let mut stdin = async_stdin().bytes();
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let app = Arc::new(Mutex::new(App::new()));
     let evt_src = EventSource::new("https://oh.zvs.io/sse").unwrap();
     let stdin = stdin();
@@ -80,7 +77,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let thread_tx = tx.clone();
     let clone = Arc::clone(&app);
     evt_src.on_message(move |msg| {
-        //let clone = Arc::clone(&app);
         println!("new message {}", msg.data);
         let json: Vec<String> = serde_json::from_str(&msg.data).unwrap();
         clone.lock().unwrap().items = json;
@@ -111,6 +107,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 tx.send(true).unwrap();
             }
+            Key::Char('p') => {
+                let _ = reqwest::get("https://oh.zvs.io/pop")
+                    .await?;
+            }
             Key::Char('r') => {
                 println!("refresh");
                 tx.send(true).unwrap();
@@ -119,5 +119,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    tx.send(false).unwrap();
     Ok(())
 }
