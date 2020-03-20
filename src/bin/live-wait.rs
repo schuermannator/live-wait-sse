@@ -8,7 +8,7 @@ use std::io::Cursor;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::path::Path;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 use rocket::request::Request;
 use rocket::response::NamedFile;
@@ -16,46 +16,58 @@ use rocket::response::Response;
 use rocket::State;
 use rocket::http::{ContentType, Status};
 use rocket::response::Responder;
+use rocket_contrib::json::Json;
+use serde::{Serialize, Deserialize};
 
-struct WaitQueue(Arc<RwLock<VecDeque<String>>>);
+struct WaitQueue(RwLock<VecDeque<Student>>);
 
-//struct SSEresp(String);
-//struct SSEresp {
-    //data: String,
-//}
+#[derive(Serialize, Deserialize)]
+struct Student {
+    name: String,
+    comment: String,
+}
 
 impl Responder<'static> for &WaitQueue {
     fn respond_to(self, _: &Request) -> Result<Response<'static>, Status> {
-        let data = serde_json::to_string(&self.0.read().unwrap().iter().collect::<Vec<&String>>()).unwrap(); 
-        let data = format!("data: {}\n\n", data);
+        let data = &self.0.read().unwrap();
+        let diter = data.iter().collect::<Vec<&Student>>();
+        let mut datavec = vec![];
+        for d in diter {
+            datavec.push(&d.name);
+        }
+        let datavec = serde_json::to_string(&datavec).unwrap(); 
+        let datavec = format!("data: {}\n\n", datavec);
         Response::build()
             .header(ContentType::new("text", "event-stream"))
-            .streamed_body(Cursor::new(data))
+            // implement something for Read that keeps open and reflects the queue
+            .streamed_body(Cursor::new(datavec))
             .ok()
     }
 }
 
 #[put("/push?<event>")]
 fn push(event: String, queue: State<WaitQueue>) {
-    queue.0.write().unwrap().push_back(event);
+    queue.0.write().unwrap().push_back(Student{name: event, comment: String::from("")});
+}
+
+#[put("/push", format = "json", data = "<joinstudent>")]
+fn push_json(joinstudent: Json<Student>, queue: State<WaitQueue>) {
+    queue.0.write().unwrap().push_back(joinstudent.0);
 }
 
 #[get("/pop")]
-fn pop(queue: State<WaitQueue>) -> Option<String> {
-    queue.0.write().unwrap().pop_front()
+fn pop(queue: State<WaitQueue>) -> String {
+    queue.0.write().unwrap().pop_front().unwrap().name
 }
 
 #[put("/leave?<event>")]
 fn leave(event: String, queue: State<WaitQueue>) {
     let mut q = queue.0.write().unwrap();
-    q.retain(|x| x != &event);
+    q.retain(|x| x.name != event);
 }
 
 #[get("/sse")]
 fn sse(queue: State<WaitQueue>) -> &WaitQueue {
-    //let q = &queue.0;
-    //let data =  serde_json::to_string(&q.read().unwrap().iter().collect::<Vec<&String>>()).unwrap(); 
-    //SSEresp {  }
     queue.inner()
 }
 
@@ -71,8 +83,8 @@ fn index() -> Option<NamedFile> {
 
 fn rocket() -> rocket::Rocket {
     rocket::ignite()
-        .mount("/", routes![index, leave, files, sse, push, pop])
-        .manage(WaitQueue(Arc::new(RwLock::new(VecDeque::new()))))
+        .mount("/", routes![index, leave, files, sse, push, push_json, pop])
+        .manage(WaitQueue(RwLock::new(VecDeque::new())))
 }
 
 fn main() {

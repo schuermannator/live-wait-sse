@@ -1,9 +1,11 @@
 import "./styles.css"
 
-var host = "oh.zvs.io";
-var httpURL = "https://"+host+"/";
+//var host = "oh.zvs.io";
+//var httpURL = "https://"+host+"/";
+var host = "localhost:8080";
+var httpURL = "http://"+host+"/";
 
-window.addEventListener("load", function(evt) {
+window.addEventListener("load", function() {
     var input = document.getElementById("input");
     var status = document.getElementById("status");
     var line = document.getElementById("line");
@@ -69,19 +71,19 @@ window.addEventListener("load", function(evt) {
         updateLine(JSON.parse(evt.data));
     }
 
-    evtSource.onopen = function(evt) {
+    evtSource.onopen = function() {
         getStatus();
     }
 
-    evtSource.onerror = function(evt) {
+    evtSource.onerror = function() {
         getStatus();
     }
 
-    document.getElementById("join").onclick = function(evt) {
+    document.getElementById("join").onclick = function() {
         if (localStorage.getItem('name') == null) {
             fetch(httpURL+'push?event='+input.value, {
                 method: 'PUT',
-            }).then(function(response) {
+            }).then(function(_) {
                 localStorage.setItem('name', input.value);
                 joiner.classList.add("hidden");
                 leaver.classList.remove("hidden");
@@ -91,12 +93,12 @@ window.addEventListener("load", function(evt) {
         }
     };
 
-    document.getElementById("leave").onclick = function(evt) {
+    document.getElementById("leave").onclick = function() {
         var name = localStorage.getItem('name');
         if (name != null) {
             fetch(httpURL+'leave?event='+name, {
                 method: 'PUT',
-            }).then(function(response) {
+            }).then(function(_) {
                 localStorage.removeItem('name');
                 joiner.classList.remove("hidden");
                 leaver.classList.add("hidden");
