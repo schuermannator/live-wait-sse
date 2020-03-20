@@ -71,13 +71,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = Arc::new(Mutex::new(App::new()));
     let evt_src = EventSource::new("https://oh.zvs.io/sse").unwrap();
     let stdin = stdin();
+    //let rclient = reqwest::Client::new();
 
     let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
 
     let thread_tx = tx.clone();
     let clone = Arc::clone(&app);
     evt_src.on_message(move |msg| {
-        println!("new message {}", msg.data);
+        //println!("new message {}", msg.data);
         let json: Vec<String> = serde_json::from_str(&msg.data).unwrap();
         clone.lock().unwrap().items = json;
         thread_tx.send(true).unwrap();
@@ -112,8 +113,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     .await?;
             }
             Key::Char('r') => {
-                println!("refresh");
-                tx.send(true).unwrap();
+                //let params = [()]
+                //let _ = rclient::put("https://oh.zvs.io/leave")
+                    //.form(&params)
+                    //.send()
+                    //.await?;
             }
             _ => {}
         }

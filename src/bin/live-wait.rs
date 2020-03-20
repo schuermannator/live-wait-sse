@@ -20,15 +20,17 @@ use rocket::response::Responder;
 struct WaitQueue(Arc<RwLock<VecDeque<String>>>);
 
 //struct SSEresp(String);
-struct SSEresp {
-    data: String,
-}
+//struct SSEresp {
+    //data: String,
+//}
 
-impl Responder<'static> for SSEresp {
+impl Responder<'static> for &WaitQueue {
     fn respond_to(self, _: &Request) -> Result<Response<'static>, Status> {
+        let data = serde_json::to_string(&self.0.read().unwrap().iter().collect::<Vec<&String>>()).unwrap(); 
+        let data = format!("data: {}\n\n", data);
         Response::build()
             .header(ContentType::new("text", "event-stream"))
-            .sized_body(Cursor::new(self.data))
+            .streamed_body(Cursor::new(data))
             .ok()
     }
 }
@@ -50,10 +52,11 @@ fn leave(event: String, queue: State<WaitQueue>) {
 }
 
 #[get("/sse")]
-fn sse(queue: State<WaitQueue>) -> SSEresp {
-    let q = &queue.0;
-    let data =  serde_json::to_string(&q.read().unwrap().iter().collect::<Vec<&String>>()).unwrap(); 
-    SSEresp { data: format!("data: {}\n\n", data) }
+fn sse(queue: State<WaitQueue>) -> &WaitQueue {
+    //let q = &queue.0;
+    //let data =  serde_json::to_string(&q.read().unwrap().iter().collect::<Vec<&String>>()).unwrap(); 
+    //SSEresp {  }
+    queue.inner()
 }
 
 #[get("/<file..>")]
