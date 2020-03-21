@@ -18,6 +18,7 @@ use rocket::http::{ContentType, Status};
 use rocket::response::Responder;
 use rocket_contrib::json::Json;
 use serde::{Serialize, Deserialize};
+use chrono::prelude::{DateTime, Utc};
 
 struct WaitQueue(RwLock<VecDeque<Student>>);
 
@@ -25,18 +26,19 @@ struct WaitQueue(RwLock<VecDeque<Student>>);
 struct Student {
     name: String,
     comment: String,
+    join_time: DateTime<Utc>,
 }
 
 impl Responder<'static> for &WaitQueue {
     fn respond_to(self, _: &Request) -> Result<Response<'static>, Status> {
         let data = &self.0.read().unwrap();
-        let diter = data.iter().collect::<Vec<&Student>>();
-        let mut datavec = vec![];
-        for d in diter {
-            datavec.push(&d.name);
-        }
-        let datavec = serde_json::to_string(&datavec).unwrap(); 
-        let datavec = format!("data: {}\n\n", datavec);
+        let data = data.iter().collect::<Vec<&Student>>();
+        //let mut datavec = vec![];
+        //for d in diter {
+            //datavec.push(&d.name);
+        //}
+        let datavec = serde_json::to_string(&data).unwrap(); 
+        let datavec = format!("data: {:?}\n\n", datavec);
         Response::build()
             .header(ContentType::new("text", "event-stream"))
             // implement something for Read that keeps open and reflects the queue
@@ -45,14 +47,17 @@ impl Responder<'static> for &WaitQueue {
     }
 }
 
-#[put("/push?<event>")]
-fn push(event: String, queue: State<WaitQueue>) {
-    queue.0.write().unwrap().push_back(Student{name: event, comment: String::from("")});
+#[put("/add?<event>")]
+fn add(event: String, queue: State<WaitQueue>) {
+    queue.0.write().unwrap()
+        .push_back(Student{name: event, comment: String::from(""), join_time: Utc::now()});
 }
 
 #[put("/push", format = "json", data = "<joinstudent>")]
-fn push_json(joinstudent: Json<Student>, queue: State<WaitQueue>) {
-    queue.0.write().unwrap().push_back(joinstudent.0);
+fn push(joinstudent: Json<Student>, queue: State<WaitQueue>) {
+    let mut student = joinstudent.0;
+    student.join_time = Utc::now();
+    queue.0.write().unwrap().push_back(student);
 }
 
 #[get("/pop")]
@@ -83,7 +88,7 @@ fn index() -> Option<NamedFile> {
 
 fn rocket() -> rocket::Rocket {
     rocket::ignite()
-        .mount("/", routes![index, leave, files, sse, push, push_json, pop])
+        .mount("/", routes![index, add, leave, files, sse, push, pop])
         .manage(WaitQueue(RwLock::new(VecDeque::new())))
 }
 

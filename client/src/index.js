@@ -1,12 +1,11 @@
 import "./styles.css"
 
-//var host = "oh.zvs.io";
-//var httpURL = "https://"+host+"/";
-var host = "localhost:8080";
-var httpURL = "http://"+host+"/";
+var host = "oh.zvs.io";
+var httpURL = "https://"+host+"/";
 
 window.addEventListener("load", function() {
     var input = document.getElementById("input");
+    var comment = document.getElementById("comment");
     var status = document.getElementById("status");
     var line = document.getElementById("line");
     var joiner = document.getElementById("joiner");
@@ -15,6 +14,8 @@ window.addEventListener("load", function() {
 
     const evtSource = new EventSource("//" + host + "/sse");
     var last = evtSource.readyState;
+
+    var datakeeper;
 
     if (localStorage.getItem('name') != null) {
         joiner.classList.add("hidden");
@@ -42,23 +43,27 @@ window.addEventListener("load", function() {
         last = evtSource.readyState;
     }
 
-    var updateLine = function(linedata) {
-        var data = linedata;
+    var updateLine = function(data) {
         if (!data)
             return;
-        var entries = "";
         var myname = localStorage.getItem('name');
-        for (name in data) {
-            if (myname == data[name]) {
-                entries += "<div class=\"text-gray-800 text-center bg-green-200 px-4"
+        var entries = "";
+        data.forEach(row => {
+            if (myname == row.name) {
+                entries += "<div class=\"flex justify-between text-gray-800 text-center bg-green-200 px-4"
                     + " py-2 m-2 rounded\">";
             } else {
-                entries += "<div class=\"text-gray-800 text-center bg-gray-200 px-4"
+                entries += "<div class=\"flex justify-between text-gray-800 text-center bg-gray-200 px-4"
                     + " py-2 m-2 rounded\">";
             }
-            entries += data[name];
+            entries += "<div>" + row.name + "</div>";
+            var seconds = (new Date() - new Date(row.join_time)) / 1000;
+            var min = Math.floor(seconds/60);
+            var sec = Math.floor(seconds % 60);
+            entries += "  ";
+            entries += "<div>" + str_pad_left(min, '0', 2) + ':' + str_pad_left(sec, '0', 2) + "</div>";
             entries += "</div>";
-        }
+        });
         if (Object.keys(data).length == 0) {
             line.innerHTML = "<p class=\"text-center text-lg\">Empty!</p>";
         } else {
@@ -66,9 +71,20 @@ window.addEventListener("load", function() {
         }
     }
 
+    // https://stackoverflow.com/questions/3733227/javascript-seconds-to-minutes-and-seconds
+    function str_pad_left(string, pad, length) {
+        return (new Array(length+1).join(pad)+string).slice(-length);
+    }
+
+    setInterval(function() {
+        updateLine(datakeeper);
+    }, 500);
+
     evtSource.onmessage = function(evt) {
         getStatus();
-        updateLine(JSON.parse(evt.data));
+        // wtf man the first call returns string 
+        datakeeper = JSON.parse(JSON.parse(evt.data));
+        updateLine(datakeeper);
     }
 
     evtSource.onopen = function() {
@@ -80,9 +96,18 @@ window.addEventListener("load", function() {
     }
 
     document.getElementById("join").onclick = function() {
+        let student = {
+            "name": input.value,
+            "comment": comment.value,
+            "join_time": new Date(),
+        };
         if (localStorage.getItem('name') == null) {
-            fetch(httpURL+'push?event='+input.value, {
+            fetch(httpURL+'push', {
                 method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(student)
             }).then(function(_) {
                 localStorage.setItem('name', input.value);
                 joiner.classList.add("hidden");
