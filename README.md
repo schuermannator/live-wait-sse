@@ -5,7 +5,7 @@ significant part of the semester; I needed an effective means to order those joi
 hours. 
 
 # Usage
-The application is live at (https://oh.zvs.io)[https://oh.zvs.io]. Simply go there and join the queue.  
+The application is live at [https://oh.zvs.io](https://oh.zvs.io). Simply go there and join the queue.  
 For TA's only: there is a Rust client which allows for administration of the queue via a CLI.
 
 ## Todo
