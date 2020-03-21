@@ -17,28 +17,18 @@ use rocket::State;
 use rocket::http::{ContentType, Status};
 use rocket::response::Responder;
 use rocket_contrib::json::Json;
-use serde::{Serialize, Deserialize};
-use chrono::prelude::{DateTime, Utc};
+use chrono::prelude::Utc;
+
+use live_wait::Student;
 
 struct WaitQueue(RwLock<VecDeque<Student>>);
-
-#[derive(Serialize, Deserialize)]
-struct Student {
-    name: String,
-    comment: String,
-    join_time: DateTime<Utc>,
-}
 
 impl Responder<'static> for &WaitQueue {
     fn respond_to(self, _: &Request) -> Result<Response<'static>, Status> {
         let data = &self.0.read().unwrap();
         let data = data.iter().collect::<Vec<&Student>>();
-        //let mut datavec = vec![];
-        //for d in diter {
-            //datavec.push(&d.name);
-        //}
         let datavec = serde_json::to_string(&data).unwrap(); 
-        let datavec = format!("data: {:?}\n\n", datavec);
+        let datavec = format!("data: {}\n\n", datavec);
         Response::build()
             .header(ContentType::new("text", "event-stream"))
             // implement something for Read that keeps open and reflects the queue

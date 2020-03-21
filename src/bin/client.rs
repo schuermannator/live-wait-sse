@@ -14,15 +14,17 @@ use tui::{
     Terminal,
 };
 
+use live_wait::Student;
+
 struct App {
-    items: Vec<String>,
+    students: Vec<Student>,
     selected: usize,
 }
 
 impl App {
     fn new() -> App {
         App {
-            items: vec![],
+            students: vec![],
             selected: 0,
         }
     }
@@ -47,16 +49,28 @@ fn draw(app: Arc<Mutex<App>>, chan: Receiver<bool>) -> Result<(), Box<dyn Error>
                 .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
                 .split(f.size());
 
-            let text = [Text::raw("idk this is where info will be")];
-            let mut info = Paragraph::new(text.iter())
+            let locked_app = app.lock().unwrap();
+            let mut namevec = vec![];
+            let mut infos = vec![];
+            for d in &locked_app.students {
+                namevec.push(&d.name);
+                infos.push(Text::raw(&d.comment));
+            }
+
+            let info: [Text; 1]; 
+            if infos.len() > locked_app.selected {
+                info = [infos[locked_app.selected].clone()];
+            } else {
+                info = [Text::raw("No one's here yet!")];
+            }
+            let mut info = Paragraph::new(info.iter())
                 .block(Block::default().borders(Borders::ALL).title("Info"));
             f.render(&mut info, chunks[0]);
 
             let style = Style::default();
-            let locked_app = app.lock().unwrap();
             let mut items = SelectableList::default()
                 .block(Block::default().borders(Borders::ALL).title("Waitqueue"))
-                .items(&locked_app.items)
+                .items(&namevec)
                 .style(style)
                 .select(Some(locked_app.selected))
                 .highlight_style(style.fg(Color::LightGreen).modifier(Modifier::BOLD))
@@ -71,7 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = Arc::new(Mutex::new(App::new()));
     let evt_src = EventSource::new("https://oh.zvs.io/sse").unwrap();
     let stdin = stdin();
-    //let rclient = reqwest::Client::new();
+    let rclient = reqwest::Client::new();
 
     let (tx, rx): (Sender<bool>, Receiver<bool>) = mpsc::channel();
 
@@ -79,8 +93,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let clone = Arc::clone(&app);
     evt_src.on_message(move |msg| {
         //println!("new message {}", msg.data);
-        let json: Vec<String> = serde_json::from_str(&msg.data).unwrap();
-        clone.lock().unwrap().items = json;
+        let json: Vec<Student> = serde_json::from_str(&msg.data).unwrap();
+        clone.lock().unwrap().students = json;
         thread_tx.send(true).unwrap();
     });
 
@@ -96,7 +110,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             Key::Char('j') => {
                 let mut locked_app = app.lock().unwrap();
-                if locked_app.selected < locked_app.items.len() - 1 {
+                if locked_app.selected + 1 < locked_app.students.len() {
                     locked_app.selected += 1;
                 }
                 tx.send(true).unwrap();
@@ -112,12 +126,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 let _ = reqwest::get("https://oh.zvs.io/pop")
                     .await?;
             }
-            Key::Char('r') => {
-                //let params = [()]
-                //let _ = rclient::put("https://oh.zvs.io/leave")
-                    //.form(&params)
-                    //.send()
-                    //.await?;
+            Key::Char('R') => {
+                let locked_app = app.lock().unwrap();
+                let name = locked_app.students[locked_app.selected].name.clone();
+                let _ = rclient.put(&format!("https://oh.zvs.io/leave?event={}", name))
+                    .send()
+                    .await?;
             }
             _ => {}
         }

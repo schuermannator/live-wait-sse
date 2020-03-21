@@ -1,5 +1,5 @@
 [package]
-name = "live-wait"
+name = "live_wait"
 version = "0.1.0"
 authors = ["Zach Schuermann <zachary.zvs@gmail.com>"]
 edition = "2018"

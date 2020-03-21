@@ -82,8 +82,7 @@ window.addEventListener("load", function() {
 
     evtSource.onmessage = function(evt) {
         getStatus();
-        // wtf man the first call returns string 
-        datakeeper = JSON.parse(JSON.parse(evt.data));
+        datakeeper = JSON.parse(evt.data);
         updateLine(datakeeper);
     }
 
