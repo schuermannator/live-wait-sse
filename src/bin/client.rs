@@ -93,7 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let thread_tx = tx.clone();
     let clone = Arc::clone(&app);
     evt_src.on_message(move |msg| {
-        println!("new message {}", msg.data);
+        //println!("new message {}", msg.data);
         let json: Vec<Student> = serde_json::from_str(&msg.data).unwrap();
         clone.lock().unwrap().students = json;
         thread_tx.send(true).unwrap();

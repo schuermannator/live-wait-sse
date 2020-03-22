@@ -1,7 +1,9 @@
 import "./styles.css"
 
-var host = "oh.zvs.io";
-var httpURL = "https://"+host+"/";
+//var host = "oh.zvs.io";
+//var httpURL = "https://"+host+"/";
+var host = "localhost:8080";
+var httpURL = "http://"+host+"/";
 
 window.addEventListener("load", function() {
     var input = document.getElementById("input");
@@ -81,8 +83,10 @@ window.addEventListener("load", function() {
     }, 500);
 
     evtSource.onmessage = function(evt) {
+        console.log(evt);
         getStatus();
         datakeeper = JSON.parse(evt.data);
+        console.log(datakeeper);
         updateLine(datakeeper);
     }
 

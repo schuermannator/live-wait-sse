@@ -1,79 +1,104 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
-use std::io::Cursor;
-//use std::io::Read;
 use std::collections::VecDeque;
-use std::path::PathBuf;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::RwLock;
 
-use async_trait::async_trait;
-use rocket::request::Request;
 use rocket::response::NamedFile;
-use rocket::response::Response;
 use rocket::State;
-use rocket::http::{ContentType, Status};
-//use rocket::http::hyper::Body;
-use rocket::response::Responder;
-use rocket_contrib::json::Json;
 use chrono::prelude::Utc;
+use rocket_contrib::json::Json;
+
+use futures_util::stream::Stream;
+use live_wait::sse;
+use tokio::sync::broadcast;
 
 use live_wait::Student;
 
 struct WaitQueue(RwLock<VecDeque<Student>>);
 
-#[crate::async_trait]
-impl<'r> Responder<'r> for &'r WaitQueue {
-    async fn respond_to(self, _: &'r Request<'_>) -> Result<Response<'r>, Status> {
-        let data = &self.0.read().unwrap();
-        let data = data.iter().collect::<Vec<&Student>>();
-        let datavec = serde_json::to_string(&data).unwrap(); 
-        let datavec = format!("data: {}\n\n", datavec);
-        //let (sender, body) = Body::channel();
-
-        //let idk: Vec<u8> = body.into();
-        //let rocket_body = rocket::response::Body::from(body.into<[u8]>());
-        
-        Response::build()
-            .header(ContentType::new("text", "event-stream"))
-            // implement something for Read that keeps open and reflects the queue
-            //.raw_body(body)
-            .streamed_body(Cursor::new(datavec))
-            .ok()
+fn send_broadcast(queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender<Vec<Student>>>) {
+    let reader = queue.0.read().unwrap();
+    let mut to_send = vec![];
+    for s in reader.iter() {
+        to_send.push(s.clone());
     }
+    let _ = subqueue.send(to_send);
 }
 
 #[put("/add?<event>")]
-fn add(event: String, queue: State<WaitQueue>) {
-    queue.0.write().unwrap()
-        .push_back(Student{name: event, comment: String::from(""), join_time: Utc::now()});
+fn add(event: String, queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender<Vec<Student>>>) {
+    queue.0.write().unwrap().push_back(Student {
+        name: event,
+        comment: String::from(""),
+        join_time: Utc::now(),
+    });
+    send_broadcast(queue, subqueue);
 }
 
 #[put("/push", format = "json", data = "<joinstudent>")]
-fn push(joinstudent: Json<Student>, queue: State<WaitQueue>) {
+fn push(
+    joinstudent: Json<Student>,
+    queue: State<WaitQueue>,
+    subqueue: State<'_, broadcast::Sender<Vec<Student>>>,
+) {
     let mut student = joinstudent.0;
     student.join_time = Utc::now();
     queue.0.write().unwrap().push_back(student);
+    send_broadcast(queue, subqueue);
 }
 
 #[get("/pop")]
-fn pop(queue: State<WaitQueue>) -> String {
-    queue.0.write().unwrap().pop_front().unwrap().name
+fn pop(queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender<Vec<Student>>>) -> String {
+    let name = queue.0.write().unwrap().pop_front().unwrap().name;
+    send_broadcast(queue, subqueue);
+    name
 }
 
 #[put("/leave?<event>")]
-fn leave(event: String, queue: State<WaitQueue>) {
-    let mut q = queue.0.write().unwrap();
-    q.retain(|x| x.name != event);
+fn leave(event: String, queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender<Vec<Student>>>) {
+    {
+        let mut q = queue.0.write().unwrap();
+        q.retain(|x| x.name != event);
+    }
+    send_broadcast(queue, subqueue);
 }
 
 #[get("/sse")]
-fn sse(queue: State<WaitQueue>) -> &WaitQueue {
-    queue.inner()
+async fn sse(
+    wq: State<'_, WaitQueue>,
+    queue: State<'_, broadcast::Sender<Vec<Student>>>,
+) -> sse::SSE2<impl Stream<Item = sse::Event>> {
+    // Subscribe to messages
+    let mut subscription = queue.subscribe();
+
+    // Create the SSE stream
+    // TODO: Only need async_stream here because subscription does not implement Stream
+    let stream = async_stream::stream! {
+        loop {
+            match subscription.recv().await {
+                Ok(student_vec) => {
+                    let data = serde_json::to_string(&student_vec).unwrap();
+                    yield sse::Event::new(Some("message".into()), Some(data.into()), None);
+                }
+                Err(broadcast::RecvError::Closed) => break,
+                Err(broadcast::RecvError::Lagged(_)) => {
+                    yield sse::Event::new(Some("behind".into()), None, None);
+                }
+            }
+        }
+    };
+
+    send_broadcast(wq, queue);
+
+    sse::from_stream(stream)
 }
 
 #[get("/<file..>")]
@@ -90,6 +115,7 @@ fn rocket() -> rocket::Rocket {
     rocket::ignite()
         .mount("/", routes![index, add, leave, files, sse, push, pop])
         .manage(WaitQueue(RwLock::new(VecDeque::new())))
+        .manage(broadcast::channel::<Vec<Student>>(1024).0)
 }
 
 fn main() {
