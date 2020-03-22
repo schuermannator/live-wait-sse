@@ -14,3 +14,4 @@ For TA's only: there is a Rust client which allows for administration of the que
 - [ ] Add 'current' tab in Rust client
 - [ ] Add times to Rust client
 - [ ] Make you're up next alert?
+- [ ] Implement enter key for joining queue

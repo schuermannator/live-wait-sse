@@ -5,16 +5,19 @@
 #[cfg(test)] mod tests;
 
 use std::io::Cursor;
+//use std::io::Read;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::path::Path;
 use std::sync::RwLock;
 
+use async_trait::async_trait;
 use rocket::request::Request;
 use rocket::response::NamedFile;
 use rocket::response::Response;
 use rocket::State;
 use rocket::http::{ContentType, Status};
+//use rocket::http::hyper::Body;
 use rocket::response::Responder;
 use rocket_contrib::json::Json;
 use chrono::prelude::Utc;
@@ -23,15 +26,22 @@ use live_wait::Student;
 
 struct WaitQueue(RwLock<VecDeque<Student>>);
 
-impl Responder<'static> for &WaitQueue {
-    fn respond_to(self, _: &Request) -> Result<Response<'static>, Status> {
+#[crate::async_trait]
+impl<'r> Responder<'r> for &'r WaitQueue {
+    async fn respond_to(self, _: &'r Request<'_>) -> Result<Response<'r>, Status> {
         let data = &self.0.read().unwrap();
         let data = data.iter().collect::<Vec<&Student>>();
         let datavec = serde_json::to_string(&data).unwrap(); 
         let datavec = format!("data: {}\n\n", datavec);
+        //let (sender, body) = Body::channel();
+
+        //let idk: Vec<u8> = body.into();
+        //let rocket_body = rocket::response::Body::from(body.into<[u8]>());
+        
         Response::build()
             .header(ContentType::new("text", "event-stream"))
             // implement something for Read that keeps open and reflects the queue
+            //.raw_body(body)
             .streamed_body(Cursor::new(datavec))
             .ok()
     }
@@ -83,5 +93,5 @@ fn rocket() -> rocket::Rocket {
 }
 
 fn main() {
-    rocket().launch();
+    rocket().launch().unwrap();
 }
