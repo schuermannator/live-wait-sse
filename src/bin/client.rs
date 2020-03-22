@@ -82,8 +82,9 @@ fn draw(app: Arc<Mutex<App>>, chan: Receiver<bool>) -> Result<(), Box<dyn Error>
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let url = "http://localhost:8080";
     let app = Arc::new(Mutex::new(App::new()));
-    let evt_src = EventSource::new("https://oh.zvs.io/sse").unwrap();
+    let evt_src = EventSource::new(&format!("{}/sse", url)).unwrap();
     let stdin = stdin();
     let rclient = reqwest::Client::new();
 
@@ -92,7 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let thread_tx = tx.clone();
     let clone = Arc::clone(&app);
     evt_src.on_message(move |msg| {
-        //println!("new message {}", msg.data);
+        println!("new message {}", msg.data);
         let json: Vec<Student> = serde_json::from_str(&msg.data).unwrap();
         clone.lock().unwrap().students = json;
         thread_tx.send(true).unwrap();
@@ -123,13 +124,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tx.send(true).unwrap();
             }
             Key::Char('p') => {
-                let _ = reqwest::get("https://oh.zvs.io/pop")
+                let _ = reqwest::get(&format!("{}/pop", url))
                     .await?;
             }
             Key::Char('R') => {
                 let locked_app = app.lock().unwrap();
                 let name = locked_app.students[locked_app.selected].name.clone();
-                let _ = rclient.put(&format!("https://oh.zvs.io/leave?event={}", name))
+                let _ = rclient.put(&format!("{}/leave?event={}", url, name))
                     .send()
                     .await?;
             }
