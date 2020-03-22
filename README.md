@@ -11,7 +11,8 @@ For TA's only: there is a Rust client which allows for administration of the que
 ## Todo
 - [x] Fix SSE (impl non-closing `Read` etc.)
 - [ ] Make checker for removing local storage if not in waitqueue after awaiting response
-- [ ] Add 'current' tab in Rust client
+      (kick people from client when removed)
+- [ ] Add 'current' tab in Rust client (the last popped student + info)
 - [ ] Add times to Rust client
-- [ ] Make you're up next alert?
+- [ ] Make you're up next alert and/or the current student with how long they have been in OH
 - [ ] Implement enter key for joining queue
