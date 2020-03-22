@@ -9,7 +9,7 @@ The application is live at [https://oh.zvs.io](https://oh.zvs.io). Simply go the
 For TA's only: there is a Rust client which allows for administration of the queue via a CLI.
 
 ## Todo
-- [ ] Fix SSE (impl non-closing `Read` etc.)
+- [x] Fix SSE (impl non-closing `Read` etc.)
 - [ ] Make checker for removing local storage if not in waitqueue after awaiting response
 - [ ] Add 'current' tab in Rust client
 - [ ] Add times to Rust client

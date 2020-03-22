@@ -14,7 +14,7 @@ use tui::{
     Terminal,
 };
 
-use live_wait::Student;
+use live_wait_server::Student;
 
 struct App {
     students: Vec<Student>,
@@ -82,7 +82,7 @@ fn draw(app: Arc<Mutex<App>>, chan: Receiver<bool>) -> Result<(), Box<dyn Error>
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let url = "http://localhost:8080";
+    let url = "https://oh.zvs.io";
     let app = Arc::new(Mutex::new(App::new()));
     let evt_src = EventSource::new(&format!("{}/sse", url)).unwrap();
     let stdin = stdin();

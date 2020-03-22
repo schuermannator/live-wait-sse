@@ -1,9 +1,9 @@
 import "./styles.css"
 
-//var host = "oh.zvs.io";
-//var httpURL = "https://"+host+"/";
-var host = "localhost:8080";
-var httpURL = "http://"+host+"/";
+var host = "oh.zvs.io";
+var httpURL = "https://"+host+"/";
+//var host = "localhost:8080";
+//var httpURL = "http://"+host+"/";
 
 window.addEventListener("load", function() {
     var input = document.getElementById("input");
@@ -15,7 +15,6 @@ window.addEventListener("load", function() {
     var greet = document.getElementById("greet");
 
     const evtSource = new EventSource("//" + host + "/sse");
-    var last = evtSource.readyState;
 
     var datakeeper;
 
@@ -30,7 +29,7 @@ window.addEventListener("load", function() {
 
     var getStatus = function() {
         var stat = ""
-        switch(evtSource.readyState + last) {
+        switch(evtSource.readyState) {
             case 1:
                 stat += "OPEN"
                 break;
@@ -42,7 +41,6 @@ window.addEventListener("load", function() {
             joiner.classList.remove("hidden");
             leaver.classList.add("hidden");
         }
-        last = evtSource.readyState;
     }
 
     var updateLine = function(data) {
