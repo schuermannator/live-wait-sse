@@ -17,3 +17,6 @@ For TA's only: there is a Rust client which allows for administration of the que
 - [ ] Make you're up next alert and/or the current student with how long they have been in OH
 - [ ] Implement enter key for joining queue
 - [ ] Add hours parsing for waittimes
+
+## Rocket-SSE
+SSE implementation from [Jeb Rosen](https://git.jebrosen.com/jeb/rocket-rooms). 
