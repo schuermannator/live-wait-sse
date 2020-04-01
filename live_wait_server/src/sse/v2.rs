@@ -33,14 +33,14 @@ enum State {
 /// # Example
 ///
 /// ```rust
-/// # use rocket::get;
-/// #
-/// use futures::stream::Stream;
-/// use rocket_rooms::sse::{self, Event, SSE2};
+/// use rocket::get;
+/// 
+/// use futures_util::stream::Stream;
+/// use live_wait_server::sse::{from_stream, Event, SSE2};
 ///
 /// #[get("/stream")]
-/// fn stream() -> SSE2<impl Stream<Item = sse::Event>> {
-///     sse::from_stream(async_stream::stream! {
+/// fn stream() -> SSE2<impl Stream<Item = Event>> {
+///     from_stream(async_stream::stream! {
 ///         yield Event::data("data1");
 ///         yield Event::data("data2");
 ///         yield Event::data("data3");
