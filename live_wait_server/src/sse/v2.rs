@@ -47,12 +47,15 @@ enum State {
 ///     })
 /// }
 /// ```
-pub fn from_stream<S: Stream<Item=Event>>(stream: S) -> SSE2<S> {
-    SSE2 { stream, state: State::Pending }
+pub fn from_stream<S: Stream<Item = Event>>(stream: S) -> SSE2<S> {
+    SSE2 {
+        stream,
+        state: State::Pending,
+    }
 }
 
 #[rocket::async_trait]
-impl<'r, S: Stream<Item=Event> + Send + 'r> Responder<'r> for SSE2<S> {
+impl<'r, S: Stream<Item = Event> + Send + 'r> Responder<'r> for SSE2<S> {
     async fn respond_to(self, _req: &'r Request<'_>) -> rocket::response::Result<'r> {
         Response::build()
             .raw_header("Content-Type", "text/event-stream")
@@ -63,8 +66,12 @@ impl<'r, S: Stream<Item=Event> + Send + 'r> Responder<'r> for SSE2<S> {
     }
 }
 
-impl<S: Stream<Item=Event>> AsyncRead for SSE2<S> {
-    fn poll_read(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<Result<usize, io::Error>> {
+impl<S: Stream<Item = Event>> AsyncRead for SSE2<S> {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<Result<usize, io::Error>> {
         let mut this = self.project();
 
         if buf.len() == 0 {
@@ -77,18 +84,22 @@ impl<S: Stream<Item=Event>> AsyncRead for SSE2<S> {
                     // Get the next buffer
                     match this.stream.as_mut().poll_next(cx) {
                         Poll::Pending => return Poll::Pending,
-                        Poll::Ready(Some(next_event)) => *this.state = State::Partial(Cursor::new(next_event.serialize())),
+                        Poll::Ready(Some(next_event)) => {
+                            *this.state = State::Partial(Cursor::new(next_event.serialize()))
+                        }
                         Poll::Ready(None) => *this.state = State::Done,
                     }
-                },
+                }
                 State::Partial(cursor) => {
                     // Copy as much pending data as possible
                     let copied = cursor.read(buf)?;
-                    if TryInto::<usize>::try_into(cursor.position()).unwrap() == cursor.get_ref().len() {
+                    if TryInto::<usize>::try_into(cursor.position()).unwrap()
+                        == cursor.get_ref().len()
+                    {
                         *this.state = State::Pending;
                     }
                     return Poll::Ready(Ok(copied));
-                },
+                }
                 State::Done => return Poll::Ready(Ok(0)),
             }
         }

@@ -5,7 +5,7 @@
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 mod v2;
-pub use v2::{SSE2, from_stream};
+pub use v2::{from_stream, SSE2};
 
 // TODO: Comprehensive support for all possible message types and fields:
 //   * comments
@@ -22,7 +22,11 @@ pub struct Event {
 impl Event {
     /// Create a new Event with only the data field specified
     pub fn data<S: Into<String>>(data: S) -> Self {
-        Self { event: None, id: None, data: Some(data.into()) }
+        Self {
+            event: None,
+            id: None,
+            data: Some(data.into()),
+        }
     }
 
     // TODO: Result instead of panic!
@@ -32,11 +36,17 @@ impl Event {
     ///
     /// Panics if either `event` or `id` contain newlines
     pub fn new(event: Option<String>, data: Option<String>, id: Option<String>) -> Self {
-        if event.as_ref().map_or(false, |e| e.find(|b| b == '\r' || b == '\n').is_some()) {
+        if event
+            .as_ref()
+            .map_or(false, |e| e.find(|b| b == '\r' || b == '\n').is_some())
+        {
             panic!("event cannot contain newlines");
         }
 
-        if id.as_ref().map_or(false, |i| i.find(|b| b == '\r' || b == '\n').is_some()) {
+        if id
+            .as_ref()
+            .map_or(false, |i| i.find(|b| b == '\r' || b == '\n').is_some())
+        {
             panic!("id cannot contain newlines");
         }
 
@@ -46,7 +56,10 @@ impl Event {
     /// Writes this event to a `writer` according in the EventStream
     /// format
     //TODO: Remove Unpin bound?
-    pub async fn write_to<W: AsyncWrite + Unpin>(self, mut writer: W) -> Result<(), std::io::Error> {
+    pub async fn write_to<W: AsyncWrite + Unpin>(
+        self,
+        mut writer: W,
+    ) -> Result<(), std::io::Error> {
         writer.write_all(&self.serialize()).await
     }
 

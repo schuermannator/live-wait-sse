@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use chrono::prelude::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 pub mod sse;
 
@@ -9,4 +9,3 @@ pub struct Student {
     pub comment: String,
     pub join_time: DateTime<Utc>,
 }
-

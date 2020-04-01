@@ -11,9 +11,9 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::RwLock;
 
+use chrono::prelude::Utc;
 use rocket::response::NamedFile;
 use rocket::State;
-use chrono::prelude::Utc;
 use rocket_contrib::json::Json;
 
 use futures_util::stream::Stream;
@@ -34,7 +34,11 @@ fn send_broadcast(queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender
 }
 
 #[put("/add?<event>")]
-fn add(event: String, queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender<Vec<Student>>>) {
+fn add(
+    event: String,
+    queue: State<WaitQueue>,
+    subqueue: State<'_, broadcast::Sender<Vec<Student>>>,
+) {
     queue.0.write().unwrap().push_back(Student {
         name: event,
         comment: String::from(""),
@@ -63,7 +67,11 @@ fn pop(queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender<Vec<Studen
 }
 
 #[put("/leave?<event>")]
-fn leave(event: String, queue: State<WaitQueue>, subqueue: State<'_, broadcast::Sender<Vec<Student>>>) {
+fn leave(
+    event: String,
+    queue: State<WaitQueue>,
+    subqueue: State<'_, broadcast::Sender<Vec<Student>>>,
+) {
     {
         let mut q = queue.0.write().unwrap();
         q.retain(|x| x.name != event);

@@ -57,7 +57,7 @@ fn draw(app: Arc<Mutex<App>>, chan: Receiver<bool>) -> Result<(), Box<dyn Error>
                 infos.push(Text::raw(&d.comment));
             }
 
-            let info: [Text; 1]; 
+            let info: [Text; 1];
             if infos.len() > locked_app.selected {
                 info = [infos[locked_app.selected].clone()];
             } else {
@@ -124,13 +124,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tx.send(true).unwrap();
             }
             Key::Char('p') => {
-                let _ = reqwest::get(&format!("{}/pop", url))
-                    .await?;
+                let _ = reqwest::get(&format!("{}/pop", url)).await?;
             }
             Key::Char('R') => {
                 let locked_app = app.lock().unwrap();
                 let name = locked_app.students[locked_app.selected].name.clone();
-                let _ = rclient.put(&format!("{}/leave?event={}", url, name))
+                let _ = rclient
+                    .put(&format!("{}/leave?event={}", url, name))
                     .send()
                     .await?;
             }
