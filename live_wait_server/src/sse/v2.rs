@@ -34,7 +34,7 @@ enum State {
 ///
 /// ```rust
 /// use rocket::get;
-/// 
+///
 /// use futures_util::stream::Stream;
 /// use live_wait_server::sse::{from_stream, Event, SSE2};
 ///
