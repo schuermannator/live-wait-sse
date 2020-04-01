@@ -1,4 +1,5 @@
 # Live Waitqueue
+![CI](https://github.com/schuermannator/live-wait-sse/workflows/CI/badge.svg)
 
 This is a queueing mechanism for my office hours. In Spring 2020, classes became virtual for a
 significant part of the semester; I needed an effective means to order those joining my online office
