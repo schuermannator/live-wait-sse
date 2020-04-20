@@ -1,6 +1,11 @@
-FROM rustlang/rust:nightly
-WORKDIR app
+FROM rustlang/rust:nightly as builder
+WORKDIR build
 COPY . .
 RUN cargo build --release
+
+FROM gcr.io/distroless/cc
+COPY client/ client/
+COPY --from=builder /build/target/release/live_wait_server ./
+COPY --from=builder /build/Rocket.toml ./
 EXPOSE 8080
-ENTRYPOINT ["./target/release/live_wait_server"]
+ENTRYPOINT ["./live_wait_server"]

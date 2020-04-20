@@ -9,6 +9,12 @@ hours.
 The application is live at [https://oh.zvs.io](https://oh.zvs.io). Simply go there and join the queue.  
 For TA's only: there is a Rust client which allows for administration of the queue via a CLI.
 
+## Building
+cli:
+```
+docker build -t docker.pkg.github.com/schuermannator/live-wait-sse/live-wait-cli:latest -f client.Dockerfile .
+```
+
 ## Todo
 - [x] Fix SSE (impl non-closing `Read` etc.)
 - [ ] Make checker for removing local storage if not in waitqueue after awaiting response
