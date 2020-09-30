@@ -1,4 +1,4 @@
-FROM rustlang/rust:nightly as builder
+FROM rust:1.46 as builder
 WORKDIR build
 COPY . .
 RUN cargo build --release
