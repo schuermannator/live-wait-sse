@@ -15,6 +15,12 @@ cli:
 docker build -t docker.pkg.github.com/schuermannator/live-wait-sse/live-wait-cli:latest -f client.Dockerfile .
 ```
 
+server:
+```
+$ pushd client && npm install && npm run build
+$ DOCKER_BUILDKIT=1 docker build -t live-wait .
+```
+
 ## Todo
 - [x] Fix SSE (impl non-closing `Read` etc.)
 - [ ] Make checker for removing local storage if not in waitqueue after awaiting response
